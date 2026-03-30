@@ -1,24 +1,24 @@
 """
-LLM Client for AI OS
-Handles communication with Ollama for chat and command generation
+LLM Client for VOIDER - Linux Companion
+Universal LangChain-powered client supporting multiple AI providers:
+  - Ollama (local, free)
+  - Groq (fast, free tier)
+  - OpenAI (GPT-4o etc.)
+  - Google Gemini (free tier)
+  - xAI / Grok (OpenAI-compatible)
 """
 
 import logging
+import os
 from typing import AsyncGenerator, Dict, List, Optional, Any
-import asyncio
-
-import ollama
-from tenacity import retry, stop_after_attempt, wait_exponential
-
-from backend.models import MessageRole, ChatMessage
 
 logger = logging.getLogger(__name__)
 
 
 # Default system prompts
-DEFAULT_CHAT_PROMPT = """You are AI OS, a helpful Linux assistant. You can:
-1. Answer general questions
-2. Generate and execute Linux commands
+DEFAULT_CHAT_PROMPT = """You are VOIDER, a friendly Linux companion AI assistant. You can:
+1. Answer general questions and have conversations
+2. Generate and explain Linux commands
 3. Search and answer from user's local files (RAG)
 
 Be concise, accurate, and helpful. If you don't know something, say so."""
@@ -47,299 +47,235 @@ If answer not in context, say "I don't have information about that in your files
 Be concise and accurate."""
 
 
+# Supported providers configuration
+PROVIDERS = {
+    "ollama": {
+        "name": "Ollama (Local)",
+        "needs_api_key": False,
+        "default_model": "llama3.2",
+        "models": ["llama3.2", "llama3.1", "mistral", "gemma2", "qwen2.5", "phi3"],
+    },
+    "groq": {
+        "name": "Groq",
+        "needs_api_key": True,
+        "default_model": "llama-3.3-70b-versatile",
+        "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"],
+    },
+    "openai": {
+        "name": "OpenAI",
+        "needs_api_key": True,
+        "default_model": "gpt-4o-mini",
+        "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+    },
+    "gemini": {
+        "name": "Google Gemini",
+        "needs_api_key": True,
+        "default_model": "gemini-1.5-flash",
+        "models": ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"],
+    },
+    "xai": {
+        "name": "xAI / Grok",
+        "needs_api_key": True,
+        "default_model": "grok-beta",
+        "models": ["grok-beta", "grok-vision-beta"],
+    },
+}
+
+
+def _build_langchain_model(provider: str, model: str, api_key: Optional[str] = None):
+    """Build the appropriate LangChain model object for the given provider."""
+    if provider == "ollama":
+        from langchain_ollama import ChatOllama
+        return ChatOllama(model=model, temperature=0.7)
+
+    elif provider == "groq":
+        from langchain_groq import ChatGroq
+        key = api_key or os.environ.get("GROQ_API_KEY", "")
+        return ChatGroq(model=model, groq_api_key=key, temperature=0.7)
+
+    elif provider == "openai":
+        from langchain_openai import ChatOpenAI
+        key = api_key or os.environ.get("OPENAI_API_KEY", "")
+        return ChatOpenAI(model=model, openai_api_key=key, temperature=0.7)
+
+    elif provider == "gemini":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        key = api_key or os.environ.get("GOOGLE_API_KEY", "")
+        return ChatGoogleGenerativeAI(model=model, google_api_key=key, temperature=0.7)
+
+    elif provider == "xai":
+        from langchain_openai import ChatOpenAI
+        key = api_key or os.environ.get("XAI_API_KEY", "")
+        return ChatOpenAI(
+            model=model,
+            openai_api_key=key,
+            openai_api_base="https://api.x.ai/v1",
+            temperature=0.7,
+        )
+
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
+
+
 class LLMClient:
-    """Client for interacting with Ollama LLM"""
-    
+    """Universal LangChain-powered LLM client for VOIDER."""
+
     def __init__(
         self,
-        model: str = "llama3.2",
+        provider: str = "ollama",
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+        # Legacy Ollama params (kept for backward compat)
         base_url: str = "http://localhost:11434",
         temperature: float = 0.7,
         max_tokens: int = 2048,
         timeout: int = 60,
         system_prompt: Optional[str] = None,
     ):
-        """
-        Initialize LLM client
-        
-        Args:
-            model: Ollama model name
-            base_url: Ollama server URL
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
-            timeout: Request timeout in seconds
-            system_prompt: Default system prompt
-        """
-        self.model = model
-        self.base_url = base_url
+        self.provider = provider
+        self.model = model or PROVIDERS.get(provider, {}).get("default_model", "llama3.2")
+        self.api_key = api_key
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.timeout = timeout
         self.system_prompt = system_prompt or DEFAULT_CHAT_PROMPT
-        
-        # Initialize Ollama client
-        self._client = ollama.Client(host=base_url)
-        
-        logger.info(f"LLM client initialized with model: {model}")
-    
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-    )
+
+        self._lc_model = _build_langchain_model(provider, self.model, api_key)
+        logger.info(f"LLM client initialized: provider={provider}, model={self.model}")
+
+    def _invoke(self, messages: list) -> str:
+        """Run synchronous LangChain invocation."""
+        from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+
+        lc_messages = []
+        for m in messages:
+            role = m.get("role", "user")
+            content = m.get("content", "")
+            if role == "system":
+                lc_messages.append(SystemMessage(content=content))
+            elif role == "assistant":
+                lc_messages.append(AIMessage(content=content))
+            else:
+                lc_messages.append(HumanMessage(content=content))
+
+        response = self._lc_model.invoke(lc_messages)
+        return response.content
+
     def chat(
         self,
         message: str,
-        context: Optional[List[ChatMessage]] = None,
+        context=None,
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
     ) -> str:
-        """
-        Send a chat message and get response
-        
-        Args:
-            message: User message
-            context: Previous conversation context
-            system_prompt: Override system prompt
-            temperature: Override temperature
-            
-        Returns:
-            AI response text
-        """
+        """Send a chat message and get a response."""
+        messages = [{"role": "system", "content": system_prompt or self.system_prompt}]
+        if context:
+            for msg in context:
+                messages.append({"role": msg.role.value, "content": msg.content})
+        messages.append({"role": "user", "content": message})
         try:
-            # Build messages
-            messages = []
-            
-            # Add system prompt
-            sys_prompt = system_prompt or self.system_prompt
-            messages.append({"role": "system", "content": sys_prompt})
-            
-            # Add context
-            if context:
-                for msg in context:
-                    messages.append({
-                        "role": msg.role.value,
-                        "content": msg.content,
-                    })
-            
-            # Add user message
-            messages.append({"role": "user", "content": message})
-            
-            # Make request
-            response = self._client.chat(
-                model=self.model,
-                messages=messages,
-                options={
-                    "temperature": temperature or self.temperature,
-                    "num_predict": self.max_tokens,
-                },
-            )
-            
-            return response["message"]["content"]
-            
+            return self._invoke(messages)
         except Exception as e:
             logger.error(f"Chat error: {e}")
             raise
-    
+
     async def stream_chat(
         self,
         message: str,
-        context: Optional[List[ChatMessage]] = None,
+        context=None,
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
     ) -> AsyncGenerator[str, None]:
-        """
-        Stream chat response
-        
-        Args:
-            message: User message
-            context: Previous conversation context
-            system_prompt: Override system prompt
-            temperature: Override temperature
-            
-        Yields:
-            Chunks of response text
-        """
+        """Stream chat response using LangChain async streaming."""
+        from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+
+        lc_messages = []
+        sys_prompt = system_prompt or self.system_prompt
+        lc_messages.append(SystemMessage(content=sys_prompt))
+
+        if context:
+            for msg in context:
+                role = msg.role.value if hasattr(msg.role, "value") else msg.role
+                content = msg.content
+                if role == "assistant":
+                    lc_messages.append(AIMessage(content=content))
+                else:
+                    lc_messages.append(HumanMessage(content=content))
+
+        lc_messages.append(HumanMessage(content=message))
+
         try:
-            # Build messages
-            messages = []
-            
-            # Add system prompt
-            sys_prompt = system_prompt or self.system_prompt
-            messages.append({"role": "system", "content": sys_prompt})
-            
-            # Add context
-            if context:
-                for msg in context:
-                    messages.append({
-                        "role": msg.role.value,
-                        "content": msg.content,
-                    })
-            
-            # Add user message
-            messages.append({"role": "user", "content": message})
-            
-            # Stream response
-            stream = self._client.chat(
-                model=self.model,
-                messages=messages,
-                options={
-                    "temperature": temperature or self.temperature,
-                    "num_predict": self.max_tokens,
-                },
-                stream=True,
-            )
-            
-            for chunk in stream:
-                if "message" in chunk and "content" in chunk["message"]:
-                    yield chunk["message"]["content"]
-                    
+            async for chunk in self._lc_model.astream(lc_messages):
+                if hasattr(chunk, "content") and chunk.content:
+                    yield chunk.content
         except Exception as e:
             logger.error(f"Stream chat error: {e}")
             raise
-    
+
     def generate_command(self, request: str) -> str:
-        """
-        Generate a Linux command from natural language
-        
-        Args:
-            request: Natural language request
-            
-        Returns:
-            Generated command or BLOCKED/CLARIFY message
-        """
+        """Generate a Linux command from natural language."""
         try:
-            response = self._client.chat(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": DEFAULT_COMMAND_PROMPT},
-                    {"role": "user", "content": request},
-                ],
-                options={
-                    "temperature": 0.1,  # Low temperature for consistency
-                    "num_predict": 256,
-                },
-            )
-            
-            command = response["message"]["content"].strip()
-            
-            # Clean up the response
-            # Remove code blocks if present
+            messages = [
+                {"role": "system", "content": DEFAULT_COMMAND_PROMPT},
+                {"role": "user", "content": request},
+            ]
+            command = self._invoke(messages).strip()
+
+            # Clean up code block wrappers if present
             if command.startswith("```"):
                 lines = command.split("\n")
                 if len(lines) > 2:
                     command = "\n".join(lines[1:-1]).strip()
                 else:
                     command = command.replace("```", "").strip()
-            
-            # Remove bash/sh prefix if present
+
             command = command.replace("bash ", "").replace("sh ", "").strip()
-            
-            logger.info(f"Generated command for '{request[:30]}...': {command[:50]}")
+            logger.info(f"Generated command: {command[:60]}")
             return command
-            
         except Exception as e:
             logger.error(f"Command generation error: {e}")
             return f"ERROR: {str(e)}"
-    
-    def generate_rag_response(
-        self,
-        question: str,
-        context: str,
-        system_prompt: Optional[str] = None,
-    ) -> str:
-        """
-        Generate response using RAG context
-        
-        Args:
-            question: User question
-            context: Retrieved context from documents
-            system_prompt: Override RAG prompt
-            
-        Returns:
-            Generated response
-        """
+
+    def generate_rag_response(self, question: str, context: str, system_prompt: Optional[str] = None) -> str:
+        """Generate response using RAG context."""
         try:
-            # Format prompt with context
             rag_prompt = system_prompt or DEFAULT_RAG_PROMPT
-            formatted_prompt = rag_prompt.format(
-                context=context,
-                question=question,
-            )
-            
-            response = self._client.chat(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": formatted_prompt},
-                    {"role": "user", "content": question},
-                ],
-                options={
-                    "temperature": self.temperature,
-                    "num_predict": self.max_tokens,
-                },
-            )
-            
-            return response["message"]["content"]
-            
+            formatted_prompt = rag_prompt.format(context=context, question=question)
+            messages = [
+                {"role": "system", "content": formatted_prompt},
+                {"role": "user", "content": question},
+            ]
+            return self._invoke(messages)
         except Exception as e:
             logger.error(f"RAG response error: {e}")
             raise
-    
+
     def check_model_available(self) -> bool:
-        """
-        Check if the configured model is available
-        
-        Returns:
-            True if model is available
-        """
+        """Check if provider/model is reachable."""
         try:
-            models = self._client.list()
-            available_models = [m["model"] for m in models.get("models", [])]
-            
-            # Check exact match or model name without tag
-            for available in available_models:
-                if self.model in available or available in self.model:
-                    return True
-            
-            return False
-            
-        except Exception as e:
-            logger.error(f"Model check error: {e}")
-            return False
-    
-    def pull_model(self) -> bool:
-        """
-        Pull the configured model
-        
-        Returns:
-            True if successful
-        """
-        try:
-            logger.info(f"Pulling model: {self.model}")
-            
-            for progress in self._client.pull(self.model, stream=True):
-                if "status" in progress:
-                    logger.info(f"Pull progress: {progress['status']}")
-            
+            # Quick test ping
+            self.chat("ping", system_prompt="Reply with one word: pong")
             return True
-            
         except Exception as e:
-            logger.error(f"Model pull error: {e}")
+            logger.warning(f"Model availability check failed: {e}")
             return False
-    
+
     def list_models(self) -> List[str]:
-        """
-        List available models
-        
-        Returns:
-            List of model names
-        """
-        try:
-            models = self._client.list()
-            return [m["model"] for m in models.get("models", [])]
-            
-        except Exception as e:
-            logger.error(f"List models error: {e}")
-            return []
+        """Return known models for current provider."""
+        return PROVIDERS.get(self.provider, {}).get("models", [self.model])
+
+    def pull_model(self) -> bool:
+        """Only meaningful for Ollama provider."""
+        if self.provider == "ollama":
+            try:
+                import ollama as ol
+                for _ in ol.Client().pull(self.model, stream=True):
+                    pass
+                return True
+            except Exception as e:
+                logger.error(f"Model pull error: {e}")
+                return False
+        return True  # No-op for cloud providers
 
 
 # Global LLM client instance
@@ -347,22 +283,25 @@ _llm_client: Optional[LLMClient] = None
 
 
 def get_llm_client(
-    model: str = "llama3.2",
+    provider: str = "ollama",
+    model: Optional[str] = None,
+    api_key: Optional[str] = None,
+    # Legacy compat params
     base_url: str = "http://localhost:11434",
     **kwargs,
 ) -> LLMClient:
-    """
-    Get or create global LLM client instance
-    
-    Args:
-        model: Model name
-        base_url: Ollama server URL
-        **kwargs: Additional client options
-        
-    Returns:
-        LLMClient instance
-    """
+    """Get or create global LLM client instance."""
     global _llm_client
-    if _llm_client is None:
-        _llm_client = LLMClient(model=model, base_url=base_url, **kwargs)
+    _llm_client = LLMClient(
+        provider=provider,
+        model=model,
+        api_key=api_key,
+        base_url=base_url,
+        **kwargs,
+    )
     return _llm_client
+
+
+def get_providers_info() -> Dict:
+    """Return full providers config (safe, no API keys)."""
+    return PROVIDERS
