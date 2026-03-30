@@ -1,0 +1,282 @@
+# AI OS Configuration
+# Local AI Assistant for Linux
+
+app:
+  name: "AI OS"
+  version: "1.0.0"
+  description: "Local AI Assistant with RAG for Linux"
+  debug: false
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: false
+  workers: 1
+
+# LLM Configuration
+llm:
+  provider: "ollama"
+  model: "llama3.2"
+  base_url: "http://localhost:11434"
+  temperature: 0.7
+  max_tokens: 2048
+  timeout: 60
+  
+  # System prompts
+  system_prompts:
+    chat: |
+      You are AI OS, a helpful Linux assistant. You can:
+      1. Answer general questions
+      2. Generate and execute Linux commands
+      3. Search and answer from user's local files (RAG)
+      
+      Be concise, accurate, and helpful. If you don't know something, say so.
+    
+    command_generator: |
+      You are a Linux command generator. Convert user requests to safe commands.
+      Rules:
+      - Output ONLY the command, no explanations
+      - Use safe flags (df -h, not df)
+      - If request is dangerous, output: "BLOCKED: [reason]"
+      - If unclear, output: "CLARIFY: [question]"
+      
+      Examples:
+      "check disk" → df -h
+      "show memory" → free -h
+      "list python processes" → ps aux | grep python
+      "delete everything" → BLOCKED: Destructive command not allowed
+    
+    rag: |
+      You are an AI assistant answering questions based on user's files.
+      Context from files:
+      {context}
+      
+      User question: {question}
+      
+      Answer based ONLY on the context above.
+      If answer not in context, say "I don't have information about that in your files."
+      Be concise and accurate.
+
+# Safety Configuration
+safety:
+  enabled: true
+  default_timeout: 30
+  max_timeout: 120
+  
+  # Risk levels
+  risk_levels:
+    LOW: 1
+    MEDIUM: 2
+    HIGH: 3
+    CRITICAL: 4
+  
+  # Commands that are always blocked (CRITICAL risk)
+  blocked_patterns:
+    - 'rm\s+-rf\s+/'
+    - 'rm\s+-rf\s+/\s*'
+    - ':(){ :|:& };:'
+    - 'mkfs\.'
+    - 'dd\s+if=.*of=/dev/'
+    - '>\s*/dev/'
+    - 'shutdown'
+    - 'reboot'
+    - 'halt'
+    - 'poweroff'
+    - 'init\s+0'
+    - 'init\s+6'
+    - 'chmod\s+-R\s+777\s+/'
+    - 'chmod\s+777\s+/'
+    - 'mv\s+/\s+'
+    - 'mv\s+/\w+\s+/'
+    - 'curl\s+.*\|\s*sh'
+    - 'curl\s+.*\|\s*bash'
+    - 'wget\s+.*\|\s*sh'
+    - 'wget\s+.*\|\s*bash'
+  
+  # Commands requiring confirmation (MEDIUM/HIGH risk)
+  confirm_patterns:
+    - 'sudo'
+    - 'su\s+-'
+    - 'rm\s+-rf'
+    - 'rm\s+-r'
+    - 'rm\s+-f'
+    - 'chmod\s+777'
+    - 'chmod\s+-R'
+    - 'chown\s+-R'
+    - 'kill\s+-9'
+    - 'pkill\s+-9'
+    - 'docker\s+system\s+prune'
+    - 'docker\s+volume\s+rm'
+    - 'pip\s+uninstall'
+    - 'apt\s+remove'
+    - 'apt\s+purge'
+    - 'yum\s+remove'
+  
+  # Safe commands (LOW risk - no confirmation needed)
+  safe_commands:
+    - "ls"
+    - "ll"
+    - "la"
+    - "pwd"
+    - "cd"
+    - "cat"
+    - "head"
+    - "tail"
+    - "less"
+    - "more"
+    - "grep"
+    - "find"
+    - "which"
+    - "whereis"
+    - "df"
+    - "du"
+    - "free"
+    - "top"
+    - "htop"
+    - "ps"
+    - "uptime"
+    - "whoami"
+    - "id"
+    - "uname"
+    - "hostname"
+    - "date"
+    - "cal"
+    - "echo"
+    - "printf"
+    - "man"
+    - "help"
+    - "clear"
+    - "history"
+    - "env"
+    - "printenv"
+    - "alias"
+    - "type"
+    - "file"
+    - "stat"
+    - "wc"
+    - "sort"
+    - "uniq"
+    - "cut"
+    - "awk"
+    - "sed"
+    - "tr"
+    - "tee"
+    - "xargs"
+    - "tar"
+    - "zip"
+    - "unzip"
+    - "gzip"
+    - "gunzip"
+    - "ping"
+    - "curl"
+    - "wget"
+    - "netstat"
+    - "ss"
+    - "lsof"
+    - "fuser"
+    - "pgrep"
+    - "pkill"
+    - "killall"
+    - "jobs"
+    - "fg"
+    - "bg"
+    - "disown"
+    - "nohup"
+    - "screen"
+    - "tmux"
+    - "git"
+    - "docker"
+    - "docker-compose"
+    - "kubectl"
+    - "helm"
+    - "python"
+    - "python3"
+    - "pip"
+    - "pip3"
+    - "node"
+    - "npm"
+    - "yarn"
+    - "go"
+    - "rustc"
+    - "cargo"
+    - "make"
+    - "cmake"
+    - "gcc"
+    - "g++"
+    - "javac"
+    - "java"
+    - "mvn"
+    - "gradle"
+
+# RAG Configuration
+rag:
+  enabled: true
+  
+  # Embedding model
+  embedding_model: "all-MiniLM-L6-v2"
+  embedding_device: "cpu"
+  
+  # Vector store
+  vector_store_path: "./data/vector_store"
+  index_name: "ai_os_index"
+  
+  # Document processing
+  chunk_size: 500
+  chunk_overlap: 50
+  max_file_size_mb: 50
+  
+  # Supported file types
+  supported_extensions:
+    - ".txt"
+    - ".md"
+    - ".markdown"
+    - ".py"
+    - ".js"
+    - ".ts"
+    - ".jsx"
+    - ".tsx"
+    - ".java"
+    - ".c"
+    - ".cpp"
+    - ".h"
+    - ".hpp"
+    - ".go"
+    - ".rs"
+    - ".rb"
+    - ".php"
+    - ".sh"
+    - ".bash"
+    - ".zsh"
+    - ".json"
+    - ".yaml"
+    - ".yml"
+    - ".xml"
+    - ".html"
+    - ".htm"
+    - ".css"
+    - ".scss"
+    - ".sass"
+    - ".sql"
+    - ".pdf"
+    - ".docx"
+    - ".doc"
+  
+  # Search settings
+  search_top_k: 5
+  similarity_threshold: 0.7
+  hybrid_search_alpha: 0.5
+
+# CLI Configuration
+cli:
+  theme: "dark"
+  show_timestamps: true
+  max_history: 100
+  auto_suggest: true
+  
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "./logs/ai-os.log"
+  max_size_mb: 10
+  backup_count: 5

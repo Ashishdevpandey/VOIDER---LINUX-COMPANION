@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOIDER - Local AI Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-sparkles"></i>
+                    <span>VOIDER</span>
+                </div>
+                <p class="version">Linux Companion</p>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button class="nav-btn active" data-view="chat">
+                    <i class="fas fa-comments"></i>
+                    <span>Chat</span>
+                </button>
+                <button class="nav-btn" data-view="commands">
+                    <i class="fas fa-terminal"></i>
+                    <span>Commands</span>
+                </button>
+                <button class="nav-btn" data-view="rag">
+                    <i class="fas fa-search"></i>
+                    <span>RAG Search</span>
+                </button>
+                <button class="nav-btn" data-view="history">
+                    <i class="fas fa-history"></i>
+                    <span>History</span>
+                </button>
+                <button class="nav-btn" data-view="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span class="status-text" id="status-text">Connecting...</span>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h1 id="page-title">Chat</h1>
+                <div class="header-actions">
+                    <button class="btn-icon" id="clear-chat" title="Clear Chat">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <button class="btn-icon" id="toggle-theme" title="Toggle Theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <div class="mac-controls">
+                        <span class="control minimize"></span>
+                        <span class="control maximize"></span>
+                        <span class="control close"></span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Chat View -->
+            <div class="view active" id="chat-view">
+                <div class="chat-container">
+                    <div class="messages" id="messages">
+                        <div class="message system">
+                            <div class="message-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="message-content">
+                                <p>👋 Welcome to <strong>VOIDER</strong>!</p>
+                                <p>I'm your friendly Linux companion. I can:</p>
+                                <ul>
+                                    <li>💬 Chat and answer questions</li>
+                                    <li>⚡ Execute Linux commands safely</li>
+                                    <li>📄 Search your local files (RAG)</li>
+                                </ul>
+                                <p>How can I help you today?</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-area">
+                        <div class="input-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="execute-mode">
+                                <span class="checkmark"></span>
+                                <span>Execute Commands</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="rag-mode">
+                                <span class="checkmark"></span>
+                                <span>Use RAG</span>
+                            </label>
+                        </div>
+                        <div class="input-wrapper">
+                            <textarea 
+                                id="message-input" 
+                                placeholder="Type your message... (Shift+Enter for new line)"
+                                rows="1"
+                            ></textarea>
+                            <button class="btn-send" id="send-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Commands View -->
+            <div class="view" id="commands-view">
+                <div class="commands-container">
+                    <div class="command-builder">
+                        <h3>Command Generator</h3>
+                        <p>Describe what you want to do in natural language, and I'll generate the command.</p>
+                        <div class="input-group">
+                            <input 
+                                type="text" 
+                                id="command-input" 
+                                placeholder="e.g., show disk usage, list all python files..."
+                            >
+                            <button class="btn-primary" id="generate-btn">
+                                <i class="fas fa-magic"></i> Generate
+                            </button>
+                        </div>
+                        <div class="command-preview" id="command-preview">
+                            <div class="preview-header">
+                                <span>Generated Command</span>
+                                <div class="preview-actions">
+                                    <button class="btn-small" id="copy-cmd">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="btn-small" id="edit-cmd">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <code id="generated-command"># Command will appear here</code>
+                        </div>
+                        <div class="command-actions" style="display: flex; align-items: center; justify-content: flex-end; width: 100%;">
+                            <label class="checkbox-label" style="margin-right: auto;">
+                                <input type="checkbox" id="auto-execute">
+                                <span class="checkmark"></span>
+                                <span>Auto-Execute</span>
+                            </label>
+                            <button class="btn-secondary" id="check-safety-btn">
+                                <i class="fas fa-shield-alt"></i> Check Safety
+                            </button>
+                            <button class="btn-primary" id="execute-btn" disabled>
+                                <i class="fas fa-play"></i> Execute
+                            </button>
+                        </div>
+                        <div class="safety-result" id="safety-result"></div>
+                        <div class="command-output" id="command-output"></div>
+                    </div>
+                    
+                    <div class="quick-commands">
+                        <h3>Quick Commands</h3>
+                        <div class="quick-grid">
+                            <button class="quick-btn" data-cmd="df -h">
+                                <i class="fas fa-hdd"></i>
+                                <span>Disk Usage</span>
+                            </button>
+                            <button class="quick-btn" data-cmd="free -h">
+                                <i class="fas fa-memory"></i>
+                                <span>Memory</span>
+                            </button>
+                            <button class="quick-btn" data-cmd="ps aux --sort=-%mem | head -10">
+                                <i class="fas fa-microchip"></i>
+                                <span>Top Processes</span>
+                            </button>
+                            <button class="quick-btn" data-cmd="uptime">
+                                <i class="fas fa-clock"></i>
+                                <span>Uptime</span>
+                            </button>
+                            <button class="quick-btn" data-cmd="ls -la">
+                                <i class="fas fa-folder"></i>
+                                <span>List Files</span>
+                            </button>
+                            <button class="quick-btn" data-cmd="whoami">
+                                <i class="fas fa-user"></i>
+                                <span>Current User</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RAG View -->
+            <div class="view" id="rag-view">
+                <div class="rag-container">
+                    <div class="rag-indexer">
+                        <h3>Index Files</h3>
+                        <p>Index your local files for semantic search.</p>
+                        <div class="input-group">
+                            <input 
+                                type="text" 
+                                id="index-path" 
+                                placeholder="/path/to/directory"
+                                value="."
+                            >
+                            <button class="btn-primary" id="index-btn">
+                                <i class="fas fa-database"></i> Index
+                            </button>
+                        </div>
+                        <div class="index-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="recursive-index" checked>
+                                <span class="checkmark"></span>
+                                <span>Recursive</span>
+                            </label>
+                        </div>
+                        <div class="index-stats" id="index-stats"></div>
+                        <div class="index-progress" id="index-progress"></div>
+                    </div>
+                    
+                    <div class="rag-search">
+                        <h3>Search Files</h3>
+                        <p>Search your indexed files using natural language.</p>
+                        <div class="input-group">
+                            <input 
+                                type="text" 
+                                id="rag-query" 
+                                placeholder="e.g., find python code about authentication"
+                            >
+                            <button class="btn-primary" id="rag-search-btn">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                        <div class="search-results" id="search-results"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- History View -->
+            <div class="view" id="history-view">
+                <div class="history-container">
+                    <div class="history-header">
+                        <h3>Command History</h3>
+                        <button class="btn-secondary" id="clear-history-btn">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                    </div>
+                    <div class="history-list" id="history-list">
+                        <p class="empty-state">No commands executed yet.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings View -->
+            <div class="view" id="settings-view">
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h3>API Configuration</h3>
+                        <div class="setting-item">
+                            <label>API URL</label>
+                            <input type="text" id="api-url" value="http://localhost:8000">
+                        </div>
+                        <div class="setting-item">
+                            <button class="btn-primary" id="test-connection">
+                                <i class="fas fa-plug"></i> Test Connection
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>Appearance</h3>
+                        <div class="setting-item">
+                            <label>Theme</label>
+                            <select id="theme-select">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                                <option value="auto">Auto</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>Font Size</label>
+                            <select id="font-size">
+                                <option value="small">Small</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="large">Large</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h3>About</h3>
+                        <div class="about-info">
+                            <p><strong>VOIDER</strong> v1.0.0</p>
+                            <p>Friendly AI Companion for Linux</p>
+                            <p>Powered by Ollama, FastAPI, and FAISS</p>
+                            <div class="links">
+                                <a href="/docs" target="_blank">API Docs</a>
+                                <a href="https://github.com" target="_blank">GitHub</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div class="modal" id="confirm-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Confirm Command Execution</h3>
+            </div>
+            <div class="modal-body">
+                <p>This command has been flagged as potentially risky:</p>
+                <code id="confirm-command"></code>
+                <p id="confirm-reason"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-cmd">Cancel</button>
+                <button class="btn-danger" id="confirm-cmd">Execute Anyway</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

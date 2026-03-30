@@ -1,0 +1,77 @@
+# AI OS - Docker Compose Configuration
+# Local AI Assistant with Ollama and RAG
+
+version: '3.8'
+
+services:
+  # AI OS API Server
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: ai-os-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - ollama
+    networks:
+      - ai-os-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Ollama LLM Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-os-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_ORIGINS=*
+    networks:
+      - ai-os-network
+    # Pull default model on first start
+    entrypoint: >
+      sh -c "
+        ollama serve &
+        sleep 5
+        ollama pull llama3.2 || true
+        wait
+      "
+
+  # Optional: Vector Database (for external DB)
+  # chroma:
+  #   image: chromadb/chroma:latest
+  #   container_name: ai-os-chroma
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8001:8000"
+  #   volumes:
+  #     - chroma-data:/chroma/chroma
+  #   networks:
+  #     - ai-os-network
+
+volumes:
+  ollama-data:
+    driver: local
+  # chroma-data:
+  #   driver: local
+
+networks:
+  ai-os-network:
+    driver: bridge
