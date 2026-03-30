@@ -10,6 +10,9 @@ const API_URL = localStorage.getItem('apiUrl') || 'http://localhost:8000';
 let sessionId = null;
 let currentCommand = null;
 let isGenerating = false;
+let isListening = false;
+let currentSpeech = null;
+let recognition = null;
 
 // DOM Elements
 const elements = {
@@ -26,6 +29,7 @@ const elements = {
     messages: document.getElementById('messages'),
     messageInput: document.getElementById('message-input'),
     sendBtn: document.getElementById('send-btn'),
+    micBtn: document.getElementById('mic-btn'),
     executeMode: document.getElementById('execute-mode'),
     ragMode: document.getElementById('rag-mode'),
     clearChat: document.getElementById('clear-chat'),
@@ -138,6 +142,11 @@ function setupEventListeners() {
     });
     elements.messageInput.addEventListener('input', autoResize);
     elements.clearChat.addEventListener('click', clearChat);
+    
+    // Mic button for Speech-to-Text
+    if (elements.micBtn) {
+        elements.micBtn.addEventListener('click', toggleSpeechRecognition);
+    }
     
     // Commands
     elements.generateBtn.addEventListener('click', generateCommand);
@@ -339,6 +348,18 @@ function addMessage(content, role, isError = false) {
     messageDiv.appendChild(avatar);
     messageDiv.appendChild(contentDiv);
     
+    // For AI (system) messages, add a TTS speaker button
+    if (role === 'system' && !isError) {
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'message-actions';
+        actionsDiv.innerHTML = `
+            <button class="btn-speak" title="Read aloud" onclick="speakText(this)">
+                <i class="fas fa-volume-up"></i>
+            </button>
+        `;
+        messageDiv.appendChild(actionsDiv);
+    }
+    
     elements.messages.appendChild(messageDiv);
     scrollToBottom();
     
@@ -405,6 +426,155 @@ function escapeHtml(text) {
 function autoResize() {
     elements.messageInput.style.height = 'auto';
     elements.messageInput.style.height = Math.min(elements.messageInput.scrollHeight, 150) + 'px';
+}
+
+// ============================================================
+// TEXT-TO-SPEECH (TTS) - Read AI responses aloud
+// ============================================================
+function speakText(buttonEl) {
+    // If currently speaking this same message, stop it
+    if (currentSpeech && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        currentSpeech = null;
+        // Reset all speak buttons
+        document.querySelectorAll('.btn-speak').forEach(btn => {
+            btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            btn.classList.remove('speaking');
+        });
+        return;
+    }
+    
+    // Get the text from the parent message-content
+    const messageDiv = buttonEl.closest('.message');
+    const contentDiv = messageDiv.querySelector('.message-content');
+    
+    // Extract plain text (strip HTML tags and code blocks)
+    let rawText = contentDiv.innerText || contentDiv.textContent || '';
+    
+    // Clean up for natural reading (remove excessive whitespace)
+    rawText = rawText.replace(/```[\s\S]*?```/g, ' [code block] ')
+                     .replace(/\s+/g, ' ')
+                     .trim();
+    
+    if (!rawText) return;
+    
+    const utterance = new SpeechSynthesisUtterance(rawText);
+    utterance.rate = 0.95;   // Slightly slower for clarity
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    // Prefer a natural sounding voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => v.lang.startsWith('en') && !v.name.includes('espeak'));
+    if (preferred) utterance.voice = preferred;
+    
+    utterance.onstart = () => {
+        buttonEl.innerHTML = '<i class="fas fa-stop-circle"></i>';
+        buttonEl.classList.add('speaking');
+        buttonEl.title = 'Stop reading';
+    };
+    
+    utterance.onend = () => {
+        buttonEl.innerHTML = '<i class="fas fa-volume-up"></i>';
+        buttonEl.classList.remove('speaking');
+        buttonEl.title = 'Read aloud';
+        currentSpeech = null;
+    };
+    
+    utterance.onerror = () => {
+        buttonEl.innerHTML = '<i class="fas fa-volume-up"></i>';
+        buttonEl.classList.remove('speaking');
+        currentSpeech = null;
+    };
+    
+    currentSpeech = utterance;
+    window.speechSynthesis.speak(utterance);
+}
+
+// ============================================================
+// SPEECH-TO-TEXT (STT) - Dictate messages with microphone
+// ============================================================
+function toggleSpeechRecognition() {
+    if (isListening) {
+        // Stop listening
+        if (recognition) recognition.stop();
+        return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+        showToast('Speech recognition is not supported in this browser. Try Chrome or Chromium.', 'warning');
+        return;
+    }
+    
+    recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    
+    const micBtn = elements.micBtn;
+    const input = elements.messageInput;
+    
+    recognition.onstart = () => {
+        isListening = true;
+        micBtn.classList.add('listening');
+        micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+        micBtn.title = 'Listening... Click to stop';
+        input.placeholder = '🎤 Listening...';
+    };
+    
+    recognition.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+        
+        // Show interim in textarea (greyed out effect via placeholder)
+        if (interimTranscript) {
+            input.value = finalTranscript + interimTranscript;
+        }
+        if (finalTranscript) {
+            input.value = finalTranscript;
+            autoResize();
+        }
+    };
+    
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error !== 'aborted') {
+            showToast(`Mic error: ${event.error}`, 'error');
+        }
+        stopListening();
+    };
+    
+    recognition.onend = () => {
+        stopListening();
+        // Auto-send if we captured something
+        if (input.value.trim()) {
+            showToast('Voice captured! Press Enter or click Send.', 'info');
+        }
+    };
+    
+    recognition.start();
+}
+
+function stopListening() {
+    isListening = false;
+    const micBtn = elements.micBtn;
+    if (micBtn) {
+        micBtn.classList.remove('listening');
+        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        micBtn.title = 'Click to speak (Speech to Text)';
+    }
+    elements.messageInput.placeholder = 'Type your message or click 🎤 to speak... (Shift+Enter for new line)';
 }
 
 function clearChat() {
