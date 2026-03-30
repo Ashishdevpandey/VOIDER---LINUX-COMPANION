@@ -972,3 +972,196 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
+
+// ============================================================
+// PROVIDER SETUP MODAL
+// ============================================================
+
+const PROVIDER_MODELS = {
+    ollama: ["llama3.2", "llama3.1", "mistral", "gemma2", "qwen2.5", "phi3"],
+    groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"],
+    openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+    gemini: ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"],
+    xai: ["grok-beta", "grok-vision-beta"],
+};
+
+const PROVIDER_KEY_LINKS = {
+    groq: "https://console.groq.com/keys",
+    openai: "https://platform.openai.com/api-keys",
+    gemini: "https://aistudio.google.com/app/apikey",
+    xai: "https://console.x.ai/",
+};
+
+const PROVIDERS_NEEDING_KEY = ["groq", "openai", "gemini", "xai"];
+
+let selectedProvider = null;
+
+function initProviderModal() {
+    const modal = document.getElementById('provider-modal');
+    if (!modal) return;
+
+    // If provider already configured, hide modal
+    const savedProvider = localStorage.getItem('voider_provider');
+    if (savedProvider) {
+        modal.classList.remove('active');
+        updateProviderBadge(savedProvider, localStorage.getItem('voider_model') || '');
+        return;
+    }
+
+    // Wire up provider cards
+    document.querySelectorAll('.provider-card').forEach(card => {
+        card.addEventListener('click', () => selectProvider(card.dataset.provider));
+    });
+
+    // Back button
+    document.getElementById('provider-back-btn')?.addEventListener('click', () => {
+        document.getElementById('provider-key-section').style.display = 'none';
+        document.getElementById('provider-key-section').style.display = 'none';
+        document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('selected'));
+        selectedProvider = null;
+    });
+
+    // Skip button
+    document.getElementById('provider-skip-btn')?.addEventListener('click', () => {
+        modal.classList.remove('active');
+        showToast('You can configure your AI provider in Settings anytime.', 'info');
+    });
+
+    // Connect button
+    document.getElementById('provider-connect-btn')?.addEventListener('click', connectProvider);
+
+    // Eye toggle
+    document.getElementById('toggle-key-visibility')?.addEventListener('click', () => {
+        const input = document.getElementById('provider-api-key-input');
+        const icon = document.querySelector('#toggle-key-visibility i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'fas fa-eye';
+        }
+    });
+}
+
+function selectProvider(provider) {
+    selectedProvider = provider;
+
+    // Highlight card
+    document.querySelectorAll('.provider-card').forEach(c => {
+        c.classList.toggle('selected', c.dataset.provider === provider);
+    });
+
+    // Populate model dropdown
+    const modelSelect = document.getElementById('provider-model-select');
+    modelSelect.innerHTML = (PROVIDER_MODELS[provider] || []).map(m =>
+        `<option value="${m}">${m}</option>`
+    ).join('');
+
+    // Show/hide API key input
+    const keySection = document.getElementById('provider-key-section');
+    const keyWrap = document.querySelector('.provider-key-input-wrap');
+    const keyLabel = document.getElementById('provider-key-label');
+    const keyLink = document.getElementById('provider-key-link');
+
+    const needsKey = PROVIDERS_NEEDING_KEY.includes(provider);
+    keyWrap.style.display = needsKey ? 'flex' : 'none';
+    document.querySelector('.provider-key-link').style.display = needsKey ? 'inline-flex' : 'none';
+
+    if (needsKey) {
+        keyLabel.textContent = `${provider.charAt(0).toUpperCase() + provider.slice(1)} API Key`;
+        keyLink.href = PROVIDER_KEY_LINKS[provider] || '#';
+        document.getElementById('provider-api-key-input').value = '';
+    } else {
+        keyLabel.textContent = 'No API key needed — runs locally';
+    }
+
+    keySection.style.display = 'block';
+}
+
+async function connectProvider() {
+    if (!selectedProvider) return;
+
+    const apiKey = document.getElementById('provider-api-key-input')?.value?.trim();
+    const model = document.getElementById('provider-model-select')?.value;
+
+    const needsKey = PROVIDERS_NEEDING_KEY.includes(selectedProvider);
+    if (needsKey && !apiKey) {
+        showToast('Please enter your API key to connect.', 'warning');
+        return;
+    }
+
+    const connectBtn = document.getElementById('provider-connect-btn');
+    connectBtn.disabled = true;
+    connectBtn.innerHTML = '<div class="spinner"></div> Connecting...';
+
+    try {
+        const response = await fetch(`${API_URL}/provider/set`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                provider: selectedProvider,
+                api_key: apiKey || null,
+                model: model || null,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            // Save to localStorage
+            localStorage.setItem('voider_provider', selectedProvider);
+            localStorage.setItem('voider_model', data.model || model);
+            if (apiKey) localStorage.setItem(`voider_key_${selectedProvider}`, apiKey);
+
+            // Close modal
+            document.getElementById('provider-modal').classList.remove('active');
+            showToast(`✅ Connected to ${data.provider_name} (${data.model})`, 'success');
+            updateProviderBadge(selectedProvider, data.model || model);
+        } else {
+            showToast(`Connection failed: ${data.detail || data.message || 'Unknown error'}`, 'error');
+        }
+    } catch (err) {
+        // Backend unreachable - save locally only
+        localStorage.setItem('voider_provider', selectedProvider);
+        localStorage.setItem('voider_model', model);
+        if (apiKey) localStorage.setItem(`voider_key_${selectedProvider}`, apiKey);
+        document.getElementById('provider-modal').classList.remove('active');
+        showToast(`Provider saved. Backend will use it on next connection.`, 'info');
+        updateProviderBadge(selectedProvider, model);
+    } finally {
+        connectBtn.disabled = false;
+        connectBtn.innerHTML = '<i class="fas fa-plug"></i> Connect';
+    }
+}
+
+function updateProviderBadge(provider, model) {
+    const headerActions = document.querySelector('.header-actions');
+    if (!headerActions) return;
+
+    // Remove existing badge
+    headerActions.querySelector('.provider-status-badge')?.remove();
+
+    const providerNames = {
+        ollama: '🟣 Ollama', groq: '⚡ Groq',
+        openai: '🔵 OpenAI', gemini: '🔴 Gemini', xai: '⚫ Grok'
+    };
+
+    const badge = document.createElement('button');
+    badge.className = 'provider-status-badge';
+    badge.title = `Click to switch AI provider`;
+    badge.innerHTML = `<span class="dot"></span>${providerNames[provider] || provider}${model ? ' · ' + model.split('-').slice(0,2).join('-') : ''}`;
+    badge.addEventListener('click', () => {
+        localStorage.removeItem('voider_provider');
+        document.getElementById('provider-modal').classList.add('active');
+    });
+
+    // Insert before the first existing button
+    headerActions.insertBefore(badge, headerActions.firstChild);
+}
+
+// Init provider modal after DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Small delay to let initializeApp run first
+    setTimeout(initProviderModal, 100);
+});

@@ -34,7 +34,7 @@ from backend.models import (
     SearchRequest,
     SearchResponse,
 )
-from backend.llm_client import get_llm_client, LLMClient, DEFAULT_RAG_PROMPT
+from backend.llm_client import get_llm_client, LLMClient, DEFAULT_RAG_PROMPT, get_providers_info, PROVIDERS
 from backend.command_executor import get_command_executor, CommandExecutor
 from backend.rag_engine import get_rag_engine, RAGEngine
 from backend.safety import get_safety_checker
@@ -82,8 +82,13 @@ async def lifespan(app: FastAPI):
     
     # Initialize components
     llm_config = config.get("llm", {})
+    provider = llm_config.get("provider", "ollama")
+    model = llm_config.get("model", None)
+    api_key = llm_config.get("api_key", None) or os.environ.get(f"{provider.upper()}_API_KEY", None)
     llm_client = get_llm_client(
-        model=llm_config.get("model", "llama3.2"),
+        provider=provider,
+        model=model,
+        api_key=api_key,
         base_url=llm_config.get("base_url", "http://localhost:11434"),
         temperature=llm_config.get("temperature", 0.7),
         max_tokens=llm_config.get("max_tokens", 2048),
@@ -532,6 +537,62 @@ async def clear_rag_index():
     
     rag_engine.clear_index()
     return {"message": "RAG index cleared"}
+
+
+@app.get("/provider/current")
+async def get_current_provider():
+    """Get current active LLM provider info (no API key exposed)"""
+    if not llm_client:
+        return {"provider": "none", "model": "none", "configured": False}
+    provider_info = PROVIDERS.get(llm_client.provider, {})
+    return {
+        "provider": llm_client.provider,
+        "provider_name": provider_info.get("name", llm_client.provider),
+        "model": llm_client.model,
+        "configured": True,
+        "needs_api_key": provider_info.get("needs_api_key", False),
+    }
+
+
+@app.post("/provider/set")
+async def set_provider(request: Dict):
+    """Switch to a different LLM provider dynamically"""
+    global llm_client
+
+    provider = request.get("provider", "ollama")
+    api_key = request.get("api_key", None)
+    model = request.get("model", None)
+
+    if provider not in PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}. Supported: {list(PROVIDERS.keys())}")
+
+    provider_info = PROVIDERS[provider]
+    if provider_info.get("needs_api_key") and not api_key:
+        raise HTTPException(status_code=400, detail=f"{provider_info['name']} requires an API key.")
+
+    try:
+        llm_client = get_llm_client(
+            provider=provider,
+            model=model,
+            api_key=api_key,
+        )
+        logger.info(f"Switched to provider: {provider}, model: {llm_client.model}")
+        return {
+            "success": True,
+            "provider": provider,
+            "provider_name": provider_info.get("name"),
+            "model": llm_client.model,
+            "message": f"Connected to {provider_info['name']} ({llm_client.model})",
+        }
+    except Exception as e:
+        logger.error(f"Provider switch error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to connect to {provider}: {str(e)}")
+
+
+@app.get("/provider/list")
+async def list_providers():
+    """List all supported providers and their models"""
+    return get_providers_info()
 
 
 @app.get("/llm/models")
