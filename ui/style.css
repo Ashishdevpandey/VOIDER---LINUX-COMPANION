@@ -553,6 +553,90 @@ body {
     transform: translateY(0);
 }
 
+/* Mic Button (STT) */
+.btn-mic {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.btn-mic:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.btn-mic.listening {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--accent-danger);
+    color: var(--accent-danger);
+    animation: micPulse 1s ease-in-out infinite;
+}
+
+@keyframes micPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+/* Message Actions (TTS Speaker button) */
+.message-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    margin-left: 56px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.message:hover .message-actions {
+    opacity: 1;
+}
+
+.btn-speak {
+    width: 28px;
+    height: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+}
+
+.btn-speak:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.btn-speak.speaking {
+    background: rgba(14, 165, 233, 0.2);
+    border-color: var(--accent-info);
+    color: var(--accent-info);
+    animation: speakPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes speakPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(14, 165, 233, 0); }
+}
+
 /* Commands View */
 .commands-container {
     flex: 1;
