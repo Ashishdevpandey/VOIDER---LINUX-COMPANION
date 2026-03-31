@@ -67,6 +67,7 @@ const elements = {
     themeSelect: document.getElementById('theme-select'),
     fontSize: document.getElementById('font-size'),
     toggleTheme: document.getElementById('toggle-theme'),
+    osSelect: document.getElementById('os-select'),
     
     // Modal
     confirmModal: document.getElementById('confirm-modal'),
@@ -108,12 +109,20 @@ function loadSettings() {
     const savedFontSize = localStorage.getItem('fontSize') || 'medium';
     elements.fontSize.value = savedFontSize;
     applyFontSize(savedFontSize);
+    
+    if (elements.osSelect) {
+        const savedOs = localStorage.getItem('targetOs') || 'Linux';
+        elements.osSelect.value = savedOs;
+    }
 }
 
 function saveSettings() {
     localStorage.setItem('apiUrl', elements.apiUrl.value);
     localStorage.setItem('theme', elements.themeSelect.value);
     localStorage.setItem('fontSize', elements.fontSize.value);
+    if (elements.osSelect) {
+        localStorage.setItem('targetOs', elements.osSelect.value);
+    }
 }
 
 function applyFontSize(size) {
@@ -186,6 +195,9 @@ function setupEventListeners() {
     });
     elements.toggleTheme.addEventListener('click', toggleTheme);
     elements.apiUrl.addEventListener('change', saveSettings);
+    if (elements.osSelect) {
+        elements.osSelect.addEventListener('change', saveSettings);
+    }
     
     // Modal
     elements.cancelCmd.addEventListener('click', closeModal);
@@ -265,6 +277,7 @@ async function sendMessage() {
                 session_id: sessionId,
                 execute_command: elements.executeMode.checked,
                 use_rag: elements.ragMode.checked,
+                target_os: elements.osSelect ? elements.osSelect.value : 'Linux',
             }),
         });
         
@@ -605,6 +618,7 @@ async function generateCommand() {
             body: JSON.stringify({
                 message: `Generate command: ${request}`,
                 execute_command: false,
+                target_os: elements.osSelect ? elements.osSelect.value : 'Linux',
             }),
         });
         

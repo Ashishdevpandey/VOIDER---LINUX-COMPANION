@@ -1,4 +1,4 @@
-# 🌌 VOIDER :- Linux Companion
+# 🌌 VOIDER :- Your OS Companion
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
@@ -6,9 +6,9 @@
 [![UI: Glassmorphism](https://img.shields.io/badge/UI-macOS%20Glass-ec4899.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Your intelligent, beautifully-designed Linux companion. Chat, execute local system commands safely, and perform RAG-based file searches directly from a stunning macOS-inspired glassmorphic interface.
+> Your intelligent, beautifully-designed OS companion. Chat, execute local system commands safely (tailored to your specific Linux, Windows, or macOS environment), and perform RAG-based file searches directly from a stunning macOS-inspired glassmorphic interface.
 
-**VOIDER** replaces clunky terminal operations with a sleek, unified graphical interface running natively on your Linux system. Powered at its core by **Ollama**, **FastAPI**, and **FAISS**, it allows you to maintain full privacy with 100% local AI models while taking complete control of your desktop environment.
+**VOIDER** replaces clunky terminal operations with a sleek, unified graphical interface running natively on your system. Powered at its core by **Ollama**, **FastAPI**, and **FAISS**, it allows you to maintain full privacy with 100% local AI models while taking complete control of your desktop environment across Linux distributions, Windows, and macOS.
 
 ---
 
@@ -84,7 +84,7 @@ Do you love Python, Bash optimizations, frontend styling, or AI engineering? **W
 4. **Push to the branch**: `git push origin feature/your-awesome-idea`
 5. **Open a Pull Request**, and we'll review it ASAP.
 
-Feel free to open an Issue if you have a bug report or a feature request. Let's build the ultimate Linux AI sidekick together!
+Feel free to open an Issue if you have a bug report or a feature request. Let's build the ultimate AI sidekick together!
 
 ---
 

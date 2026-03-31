@@ -21,7 +21,7 @@
                     <img src="assets/logo.png" alt="VOIDER Logo" class="logo-img">
                     <span>VOIDER</span>
                 </div>
-                <p class="version">Linux Companion</p>
+                <p class="version">OS Companion</p>
             </div>
             
             <nav class="sidebar-nav">
@@ -85,10 +85,10 @@
                             </div>
                             <div class="message-content">
                                 <p>👋 Welcome to <strong>VOIDER</strong>!</p>
-                                <p>I'm your friendly Linux companion. I can:</p>
+                                <p>I'm your friendly OS companion. I can:</p>
                                 <ul>
                                     <li>💬 Chat and answer questions</li>
-                                    <li>⚡ Execute Linux commands safely</li>
+                                    <li>⚡ Execute OS commands safely</li>
                                     <li>📄 Search your local files (RAG)</li>
                                 </ul>
                                 <p>How can I help you today?</p>
@@ -283,6 +283,21 @@
                     </div>
                     
                     <div class="settings-section">
+                        <h3>Operating System</h3>
+                        <div class="setting-item">
+                            <label>Target OS</label>
+                            <select id="os-select">
+                                <option value="Linux">Linux (Generic)</option>
+                                <option value="Debian/Ubuntu">Debian / Ubuntu (.deb)</option>
+                                <option value="Fedora/RedHat">Fedora / RedHat (.rpm)</option>
+                                <option value="Arch Linux">Arch Linux</option>
+                                <option value="Windows">Windows</option>
+                                <option value="macOS">macOS</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
                         <h3>Appearance</h3>
                         <div class="setting-item">
                             <label>Theme</label>
@@ -306,7 +321,7 @@
                         <h3>About</h3>
                         <div class="about-info">
                             <p><strong>VOIDER</strong> v1.0.0</p>
-                            <p>Friendly AI Companion for Linux</p>
+                            <p>Friendly AI Companion for your OS</p>
                             <p>Powered by Ollama, FastAPI, and FAISS</p>
                             <div class="links">
                                 <a href="/docs" target="_blank">API Docs</a>

@@ -38,6 +38,7 @@ class ChatRequest(BaseModel):
     execute_command: bool = Field(default=False, description="Whether to execute generated commands")
     use_rag: bool = Field(default=False, description="Whether to use RAG for context")
     context: Optional[List[ChatMessage]] = Field(default=None, description="Previous messages")
+    target_os: str = Field(default="Linux", description="Target Operating System (e.g., Ubuntu, Fedora, Arch Linux, Windows)")
 
     @field_validator("message")
     @classmethod

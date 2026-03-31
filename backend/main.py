@@ -249,12 +249,12 @@ async def chat(request: ChatRequest):
         # Handle command generation only (from UI)
         elif request.message.lower().startswith("generate command:"):
             actual_request = request.message[17:].strip()
-            response_text = llm_client.generate_command(actual_request)
+            response_text = llm_client.generate_command(actual_request, target_os=request.target_os)
             
         # Handle command generation and execution
         elif is_command_request and request.execute_command:
             # Generate command
-            generated_command = llm_client.generate_command(request.message)
+            generated_command = llm_client.generate_command(request.message, target_os=request.target_os)
             
             # Check if blocked by LLM
             if generated_command.startswith("BLOCKED:"):
@@ -286,6 +286,7 @@ async def chat(request: ChatRequest):
             response_text = llm_client.chat(
                 message=request.message,
                 context=request.context,
+                target_os=request.target_os,
             )
         
         return ChatResponse(
@@ -309,6 +310,7 @@ async def chat_simple(request: Dict):
         session_id=request.get("session_id"),
         execute_command=request.get("execute_command", False),
         use_rag=request.get("use_rag", False),
+        target_os=request.get("target_os", "Linux"),
     )
     return await chat(chat_request)
 
@@ -323,6 +325,7 @@ async def chat_stream(request: Dict):
     message = request.get("message", "")
     execute_command = request.get("execute_command", False)
     use_rag = request.get("use_rag", False)
+    target_os = request.get("target_os", "Linux")
     
     async def generate_sse():
         try:
@@ -338,7 +341,7 @@ async def chat_stream(request: Dict):
             # Only generate command (from UI Command Generator)
             if message.lower().startswith("generate command:"):
                 actual_request = message[17:].strip()
-                response_text = llm_client.generate_command(actual_request)
+                response_text = llm_client.generate_command(actual_request, target_os=target_os)
                 chunk_data = json.dumps({'chunk': response_text})
                 yield f"data: {chunk_data}\n\n"
             
@@ -354,7 +357,7 @@ async def chat_stream(request: Dict):
             elif is_command_request and execute_command:
                 chunk_data = json.dumps({'chunk': 'Generating command...\n'})
                 yield f"data: {chunk_data}\n\n"
-                generated_command = llm_client.generate_command(message)
+                generated_command = llm_client.generate_command(message, target_os=target_os)
                 
                 if generated_command.startswith("BLOCKED:") or generated_command.startswith("CLARIFY:") or generated_command.startswith("ERROR:"):
                     chunk_data = json.dumps({'chunk': generated_command})
@@ -381,7 +384,7 @@ async def chat_stream(request: Dict):
             
             # Regular chat
             else:
-                async for chunk in llm_client.stream_chat(message):
+                async for chunk in llm_client.stream_chat(message, target_os=target_os):
                     chunk_data = json.dumps({'chunk': chunk})
                     yield f"data: {chunk_data}\n\n"
             

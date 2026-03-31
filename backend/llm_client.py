@@ -16,25 +16,29 @@ logger = logging.getLogger(__name__)
 
 
 # Default system prompts
-DEFAULT_CHAT_PROMPT = """You are VOIDER, a friendly Linux companion AI assistant. You can:
+DEFAULT_CHAT_PROMPT = """You are VOIDER, a friendly {target_os} companion AI assistant. You can:
 1. Answer general questions and have conversations
-2. Generate and explain Linux commands
+2. Generate and explain {target_os} commands
 3. Search and answer from user's local files (RAG)
 
 Be concise, accurate, and helpful. If you don't know something, say so."""
 
-DEFAULT_COMMAND_PROMPT = """You are a Linux command generator. Convert user requests to safe commands.
+DEFAULT_COMMAND_PROMPT = """You are a {target_os} command generator. Convert user requests to safe commands.
 Rules:
 - Output ONLY the command, no explanations
-- Use safe flags (df -h, not df)
+- Use safe flags (e.g. df -h instead of df if on Linux)
 - If request is dangerous, output: "BLOCKED: [reason]"
 - If unclear, output: "CLARIFY: [question]"
+- Command MUST be compatible with {target_os}
 
-Examples:
+Examples (Linux):
 "check disk" → df -h
 "show memory" → free -h
 "list python processes" → ps aux | grep python
-"delete everything" → BLOCKED: Destructive command not allowed"""
+"delete everything" → BLOCKED: Destructive command not allowed
+Examples (Windows):
+"check disk" → Get-CimInstance Win32_LogicalDisk
+"show memory" → Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize, FreePhysicalMemory"""
 
 DEFAULT_RAG_PROMPT = """You are an AI assistant answering questions based on user's files.
 Context from files:
@@ -166,9 +170,14 @@ class LLMClient:
         context=None,
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
+        target_os: str = "Linux",
     ) -> str:
         """Send a chat message and get a response."""
-        messages = [{"role": "system", "content": system_prompt or self.system_prompt}]
+        sys_prompt = system_prompt or self.system_prompt
+        if "{target_os}" in sys_prompt:
+            sys_prompt = sys_prompt.format(target_os=target_os)
+            
+        messages = [{"role": "system", "content": sys_prompt}]
         if context:
             for msg in context:
                 messages.append({"role": msg.role.value, "content": msg.content})
@@ -185,12 +194,16 @@ class LLMClient:
         context=None,
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
+        target_os: str = "Linux",
     ) -> AsyncGenerator[str, None]:
         """Stream chat response using LangChain async streaming."""
         from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
         lc_messages = []
         sys_prompt = system_prompt or self.system_prompt
+        if "{target_os}" in sys_prompt:
+            sys_prompt = sys_prompt.format(target_os=target_os)
+            
         lc_messages.append(SystemMessage(content=sys_prompt))
 
         if context:
@@ -212,11 +225,15 @@ class LLMClient:
             logger.error(f"Stream chat error: {e}")
             raise
 
-    def generate_command(self, request: str) -> str:
+    def generate_command(self, request: str, target_os: str = "Linux") -> str:
         """Generate a Linux command from natural language."""
         try:
+            sys_prompt = DEFAULT_COMMAND_PROMPT
+            if "{target_os}" in sys_prompt:
+                sys_prompt = sys_prompt.format(target_os=target_os)
+                
             messages = [
-                {"role": "system", "content": DEFAULT_COMMAND_PROMPT},
+                {"role": "system", "content": sys_prompt},
                 {"role": "user", "content": request},
             ]
             command = self._invoke(messages).strip()
