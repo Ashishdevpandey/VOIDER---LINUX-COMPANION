@@ -12,9 +12,9 @@
 
 ### 🎥 Watch the Demo
 
-<video src="Screencast_20260401_113805.webm" controls="controls" style="max-width: 100%;">
-  Your browser does not support the video tag.
-</video>
+https://github.com/Ashishdevpandey/VOIDER---OS-COMPANION/raw/main/Screencast_20260401_113805.webm
+
+*If the video above doesn't load, [click here to watch the demo](https://github.com/Ashishdevpandey/VOIDER---OS-COMPANION/raw/main/Screencast_20260401_113805.webm).*
 
 ---
 
