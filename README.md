@@ -1,102 +1,116 @@
-# 🌌 VOIDER :- Your OS Companion
+<div align="center">
+  <img src="voider_logo_transparent.png" alt="VOIDER Logo" width="200"/>
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Ollama](https://img.shields.io/badge/Ollama-000000.svg)](https://ollama.com/)
-[![UI: Glassmorphism](https://img.shields.io/badge/UI-macOS%20Glass-ec4899.svg)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  # 🌌 VOIDER
+  
+  **Your Intelligent, Privacy-Focused, Universal OS Companion**
 
-> Your intelligent, beautifully-designed OS companion. Chat, execute local system commands safely (tailored to your specific Linux, Windows, or macOS environment), and perform RAG-based file searches directly from a stunning macOS-inspired glassmorphic interface.
+  [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
+  [![Ollama](https://img.shields.io/badge/Ollama-000000.svg)](https://ollama.com/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  
+  > *Chat, execute local system commands seamlessly across OS environments, and perform RAG-based file searches directly from a stunning glassmorphic interface—100% locally.*
 
-**VOIDER** replaces clunky terminal operations with a sleek, unified graphical interface running natively on your system. Powered at its core by **Ollama**, **FastAPI**, and **FAISS**, it allows you to maintain full privacy with 100% local AI models while taking complete control of your desktop environment across Linux distributions, Windows, and macOS.
+</div>
 
-### 🎥 Watch the Demo
+<br/>
 
-![VOIDER Live Demo](demo.gif)
-*Note: Video quality decreased by GitHub.*
-
----
-
-## ✨ How It Works (Architecture Details)
-
-VOIDER operates via a decoupled architecture, joining a high-performance Python application on the backend with a lightweight, highly-polished HTML/CSS/JS frontend.
-
-### 🧠 1. The Core AI Engine (Backend)
-- **FastAPI Server**: Acts as the central nervous system, handling RESTful web requests and executing Python scripts `(http://localhost:8000)`.
-- **Ollama Integration**: Talks locally to the Ollama daemon (defaults to `llama3.2`) to generate text dynamically. No cloud APIs, utter privacy.
-- **RAG Engine**: Uses `FAISS` and lightweight sentence transformers to index designated folders on your filesystem. When you ask a question about your local documents, VOIDER retrieves the relevant text chunks to provide highly-accurate, contextualized answers.
-- **Safe Command Executor**: Evaluates generated Bash/Linux commands against a multi-layered blocklist. High-risk commands (like disk formatting or `rm -rf /`) are permanently rejected or require manual verification.
-
-### 🎨 2. The Glassmorphic Unibody UI (Frontend)
-- **Aesthetic**: Borrowing the best from macOS layout philosophies, the frontend boasts a sweeping translucent "unibody" window with animated gradient background orbs and glowing neon accents.
-- **Native Polish**: Traffic light window controls and floating panel designs ensure the app feels like a first-class premium citizen on your desktop.
-- **Real-Time Interface**: Features Web API integrations to keep chat streams, command outputs, and RAG stats responsive without needing page reloads.
+<div align="center">
+  <img src="demo.gif" alt="VOIDER Live Demo" width="800" style="border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/>
+</div>
 
 ---
 
-## 🚀 Quick Start
+## ✨ Features
+
+VOIDER replaces clunky terminal operations with a sleek, unified graphical interface running natively on your system.
+
+* 🔒 **100% Privacy Focused:** Powered locally by Ollama and FAISS. No cloud APIs, utter privacy.
+* 🖥️ **Cross-Platform Compatibility:** Generates and executes commands tailored to your specific Linux, Windows, or macOS environment.
+* 🛡️ **Safe Command Execution:** Multi-layered blocklist prevents destructive commands (e.g., `rm -rf /`).
+* 🧠 **RAG-Powered File Search:** Ask questions about your local documents and get highly accurate, contextualized answers.
+* 🎨 **Stunning Glassmorphic UI:** macOS-inspired translucent "unibody" window with dynamic futuristic aesthetics.
+* 🔌 **Multi-Provider Support:** Seamlessly switch between local models (Ollama) and cloud APIs (Groq, OpenAI, Gemini, xAI).
+
+---
+
+## 🚀 Quick Install (1-Click)
+
+Get VOIDER up and running in seconds. 
 
 ### Prerequisites
 - Python 3.10+
-- [Ollama](https://ollama.com/) installed and running locally.
+- [Ollama](https://ollama.com/) (running locally)
 
-### Installation
-
+### Linux/macOS
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/voider.git
-cd ai-os
-
-# Run the automated installation script
-chmod +x install.sh
-./install.sh
+curl -sSL https://raw.githubusercontent.com/yourusername/voider/main/install.sh | bash
+./start.sh
 ```
+*(If you have cloned the repo, simply run `./install.sh` followed by `./start.sh`)*
 
-### Boot Sequence
-
+### RPM Package (Fedora/RedHat)
 ```bash
-# Activate your virtual environment
-source venv/bin/activate
-
-# Ensure Ollama is running and has the llama3.2 model pulled
-ollama serve &
-ollama pull llama3.2
-
-# Start the FastAPI Server (Port 8000)
+sudo rpm -i voider-ai-os-1.0-1.fc43.x86_64.rpm
+# Then start the app
 ./start.sh
 ```
 
-**Access the UI**: Open http://localhost:8080/ (if deploying via standard python server) or navigate to the built-in HTML route provided by FastAPI.
+---
+
+## 🏗️ Architecture overview
+
+VOIDER operates via a decoupled architecture, joining a high-performance Python application on the backend with a lightweight, highly-polished frontend.
+
+```mermaid
+graph TD;
+    UI[🖥️ Glassmorphic UI] <-->|REST / SSE| API[⚙️ FastAPI Backend];
+    API <--> LLM[🧠 LLM Provider Router];
+    LLM <--> Ollama[🦙 Ollama Local];
+    LLM <--> Cloud[☁️ Groq / OpenAI / Gemini];
+    API <--> RAG[📚 FAISS RAG Engine];
+    RAG <--> Docs[📄 Local Filesystem];
+    API <--> CMD[💻 Safe Command Executor];
+    CMD <--> OS[🐧 Linux / 🪟 Windows / 🍏 macOS];
+```
 
 ---
 
-## 🛠️ We Want YOU! (Calling All Developers)
+## 🥊 How It Compares
 
-**VOIDER** is designed to become the definitive AI-powered desktop companion for Linux power users, and we can't do it without the open-source community! 
+| Feature | VOIDER 🌌 | Open Interpreter | Copilot CLI | Native Terminal |
+|---------|-----------|------------------|-------------|-----------------|
+| **UI** | Stunning Glassmorphic Web App | Terminal | Terminal | Terminal |
+| **Privacy** | 100% Local (Ollama) | API Key needed (default) | Cloud | N/A |
+| **Safety Blocklist** | Yes, Built-in | Prompts User | Prompts User | None |
+| **RAG File Search** | Auto-indexed Local Docs | Basic Python Read | No | Grep/Find |
+| **Cost** | Free (Open Source) | Varies (API) | Subscription | Free |
 
-Do you love Python, Bash optimizations, frontend styling, or AI engineering? **We want developers to contribute to this project.**
+---
 
-### Areas We Need Help With:
-- 🖌️ **Advanced Frontend Frameworking**: Replacing our vanilla JS implementation with Tauri, Electron, or a Python QT/GTK architecture for a true standalone desktop application.
-- 🐍 **Backend Optimization**: Introducing better asynchronous command streaming (`Server-Sent Events` upgrades) and smarter context-aware session memory that remembers your Linux configurations.
-- 📦 **Packaging**: Helping us package VOIDER into a `.deb`, `RPM`, `AppImage`, or `Flatpak` for simple 1-click distributions on popular Linux distros like Ubuntu, Fedora, and Arch.
-- 🧠 **Multi-Modal AI**: Expanding local integrations to run vision models (like LLaVA) for screen-understanding or image interactions.
+## 🛠️ Contributing & Good First Issues
 
-### How to Contribute:
+**VOIDER** is built for the open-source community, and we want **YOU**!
+
+Looking to get involved? Check out our issues labeled **`good first issue`**—perfect for newcomers:
+* 🐛 **Bug:** Fix UI overflow on ultra-wide monitors.
+* 📝 **Docs:** Add Docker setup instructions.
+* ✨ **Feature:** Add a new theme to the UI settings.
+
+### How to Contribute
 1. **Fork the repo** and throw us a Star ⭐!
-2. **Create a feature branch**: `git checkout -b feature/your-awesome-idea`
-3. **Commit your changes**: `git commit -m 'Added custom theming engine'`
-4. **Push to the branch**: `git push origin feature/your-awesome-idea`
-5. **Open a Pull Request**, and we'll review it ASAP.
-
-Feel free to open an Issue if you have a bug report or a feature request. Let's build the ultimate AI sidekick together!
-
-## 📬 Contact
-
-Reach out to me at ashisdvpandey@gmail.com / ashisdvpandey@proton.me
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request!
 
 ---
 
-<p align="center">
-  Made with ❤️ by the VOIDER Open Source Community
-</p>
+<div align="center">
+  <h3>⭐⭐ If you find VOIDER useful, please consider giving it a star on GitHub! It helps a lot! ⭐⭐</h3>
+  
+  <p>Reach out to me at <a href="mailto:ashisdvpandey@gmail.com">ashisdvpandey@gmail.com</a></p>
+
+  <p>Made with ❤️ by the VOIDER Open Source Community</p>
+</div>
