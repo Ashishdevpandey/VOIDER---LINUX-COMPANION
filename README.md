@@ -71,19 +71,9 @@ sudo rpm -i voider-ai-os-1.0-1.fc43.x86_64.rpm
 
 VOIDER operates via a decoupled architecture, joining a high-performance Python application on the backend with a lightweight, highly-polished frontend.
 
-```mermaid
-graph TD;
-    UI[🖥️ Glassmorphic UI] <-->|REST / SSE| API[⚙️ FastAPI Backend];
-    API <--> LLM[🧠 LLM Provider Router];
-    LLM <--> Ollama[🦙 Ollama Local];
-    LLM <--> Cloud[☁️ Groq / OpenAI / Gemini];
-    API <--> RAG[📚 FAISS RAG Engine];
-    RAG <--> Docs[📄 Local Filesystem];
-    API <--> CMD[💻 Safe Command Executor];
-    CMD <--> Lin[fa:fa-linux Linux]
-    CMD <--> Win[fa:fa-windows Windows .exe]
-    CMD <--> Mac[fa:fa-apple macOS]
-```
+<div align="center">
+  <img src="architecture.png" alt="VOIDER System Architecture" width="900"/>
+</div>
 
 ---
 
