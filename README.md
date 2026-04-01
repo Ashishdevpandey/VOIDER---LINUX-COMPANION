@@ -50,6 +50,14 @@ curl -sSL https://raw.githubusercontent.com/yourusername/voider/main/install.sh 
 ```
 *(If you have cloned the repo, simply run `./install.sh` followed by `./start.sh`)*
 
+### Windows (.exe)
+Download the latest `voider-setup.exe` from the [Releases](https://github.com/yourusername/voider/releases) page and run the installer.
+Alternatively, via PowerShell:
+```powershell
+Invoke-WebRequest -Uri "https://github.com/yourusername/voider/releases/latest/download/voider-setup.exe" -OutFile "voider-setup.exe"
+start voider-setup.exe
+```
+
 ### RPM Package (Fedora/RedHat)
 ```bash
 sudo rpm -i voider-ai-os-1.0-1.fc43.x86_64.rpm
@@ -72,7 +80,7 @@ graph TD;
     API <--> RAG[📚 FAISS RAG Engine];
     RAG <--> Docs[📄 Local Filesystem];
     API <--> CMD[💻 Safe Command Executor];
-    CMD <--> OS[🐧 Linux / 🪟 Windows / 🍏 macOS];
+    CMD <--> OS[🐧 Linux / 🪟 Windows .exe / 🍏 macOS];
 ```
 
 ---
