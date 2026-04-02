@@ -38,9 +38,10 @@ warn()    { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
 error()   { echo -e "${RED}[ERROR]${RESET} $*"; exit 1; }
 
 # ── Defaults ────────────────────────────────────────────────
-PROVIDER="ollama"
+PROVIDER=""
 API_KEY=""
 MODEL=""
+SKIP_OLLAMA=false
 GPU=false
 PULL=false
 PORT=8000
@@ -55,8 +56,9 @@ while [[ $# -gt 0 ]]; do
         --port)        PORT="$2";     shift 2 ;;
         --gpu)         GPU=true;      shift ;;
         --pull)        PULL=true;     shift ;;
+        --no-ollama)   SKIP_OLLAMA=true; shift ;;
         --help|-h)
-            echo "Usage: $0 [--provider ollama|groq|openai|gemini|xai] [--api-key KEY] [--model MODEL] [--port PORT] [--gpu] [--pull]"
+            echo "Usage: $0 [--provider PROVIDER] [--api-key KEY] [--model MODEL] [--port PORT] [--gpu] [--pull] [--no-ollama]"
             exit 0 ;;
         *) warn "Unknown argument: $1"; shift ;;
     esac
@@ -82,6 +84,40 @@ success "Docker and Compose found."
 
 docker info &>/dev/null || error "Docker daemon is not running. Start it with: sudo systemctl start docker"
 success "Docker daemon is running."
+
+# ── Setup Type Selection ────────────────────────────────────
+if [[ -z "$PROVIDER" ]] && [[ "$SKIP_OLLAMA" == "false" ]]; then
+    echo -e "${BOLD}Choose your Setup Type:${RESET}"
+    echo -e "  1) ${CYAN}Local (Privacy First)${RESET} — Runs Ollama + VOIDER on your machine (Heavy: ~8GB RAM)"
+    echo -e "  2) ${CYAN}Cloud (Performance)${RESET}    — Runs only VOIDER, uses Groq/OpenAI/Gemini/xAI (Light: ~512MB RAM)"
+    echo ""
+    read -p "Select option [1-2]: " SETUP_CHOICE
+    
+    case $SETUP_CHOICE in
+        2) 
+            SKIP_OLLAMA=true 
+            echo -e "Choose a Cloud Provider:"
+            echo "  1) Groq (Recommended - Free Tier)"
+            echo "  2) OpenAI"
+            echo "  3) Gemini"
+            echo "  4) xAI / Grok"
+            read -p "Select cloud provider [1-4]: " CLOUD_CHOICE
+            case $CLOUD_CHOICE in
+                1) PROVIDER="groq" ;;
+                2) PROVIDER="openai" ;;
+                3) PROVIDER="gemini" ;;
+                4) PROVIDER="xai" ;;
+                *) PROVIDER="groq" ;;
+            esac
+            ;;
+        *) 
+            PROVIDER="ollama" 
+            ;;
+    esac
+fi
+
+# Fallback default
+if [[ -z "$PROVIDER" ]]; then PROVIDER="ollama"; fi
 
 # ── Provider validation ──────────────────────────────────────
 CLOUD_PROVIDERS=("groq" "openai" "gemini" "xai")
@@ -130,11 +166,12 @@ fi
 echo ""
 info "Starting VOIDER containers..."
 
-PROFILES="--profile default"
-if [[ "$PROVIDER" != "ollama" ]]; then
-    # Skip starting Ollama when using cloud provider
-    warn "Cloud provider selected ($PROVIDER) — Ollama container will not start."
-    PROFILES=""
+PROFILES=""
+if [[ "$SKIP_OLLAMA" == "false" ]] && [[ "$PROVIDER" == "ollama" ]]; then
+    info "Local mode enabled — starting Ollama..."
+    PROFILES="--profile local"
+else
+    warn "Cloud mode enabled ($PROVIDER) — skipping Ollama/Local-LLM."
 fi
 
 $DOCKER_COMPOSE_CMD --env-file "$ENV_FILE" $PROFILES up -d

@@ -8,7 +8,8 @@ CONFIG_FILE="/app/config/config.yaml"
 mkdir -p /app/data/vector_store /app/logs
 
 # ── If using Ollama, wait for it to be ready ─────────────────
-if [ "$VOIDER_PROVIDER" = "ollama" ]; then
+PROVIDER_TYPE=$(echo "$VOIDER_PROVIDER" | tr '[:upper:]' '[:lower:]')
+if [ "$PROVIDER_TYPE" = "ollama" ] || [ -z "$VOIDER_PROVIDER" ]; then
     OLLAMA_URL="${VOIDER_OLLAMA_HOST:-http://ollama:11434}"
     echo "⏳ Waiting for Ollama at $OLLAMA_URL ..."
     MAX_WAIT=60

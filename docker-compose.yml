@@ -36,9 +36,9 @@ services:
       - AIOS_PORT=8000
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
-    depends_on:
-      ollama:
-        condition: service_started
+    # depends_on:
+    #   ollama:
+    #     condition: service_started
     networks:
       - voider-net
     healthcheck:
@@ -61,8 +61,7 @@ services:
     environment:
       - OLLAMA_ORIGINS=*
     profiles:
-      - ollama       # only started when --profile ollama or by default
-      - default
+      - local
     networks:
       - voider-net
     # Pull default model automatically on first boot

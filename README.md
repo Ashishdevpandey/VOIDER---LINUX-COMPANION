@@ -75,16 +75,19 @@ sudo rpm -i voider-ai-os-1.0-1.fc43.x86_64.rpm
 git clone https://github.com/Ashishdevpandey/VOIDER---OS-COMPANION.git
 cd VOIDER---OS-COMPANION
 
-# Local Ollama (default, fully private)
+# Interactive Setup (Recommended)
+# Asks you to choose between Local (Ollama) or Cloud (API)
 ./docker-install.sh
 
-# Cloud provider (e.g., Groq — blazing fast, free tier)
-./docker-install.sh --provider groq --api-key gsk_YOUR_KEY
+# Cloud provider (Direct setup)
+./docker-install.sh --provider groq --api-key gsk_YOUR_KEY --no-ollama
 
 # OpenAI / Gemini / xAI
-./docker-install.sh --provider openai --api-key sk-YOUR_KEY
-./docker-install.sh --provider gemini --api-key AI_YOUR_KEY
+./docker-install.sh --provider openai --api-key sk-YOUR_KEY --no-ollama
 ```
+
+> [!TIP]
+> Use the **Cloud** setup if you have limited RAM (requires < 512MB). Use **Local** for maximum privacy (requires 8GB+ RAM).
 
 Then open **http://localhost:8000/ui** 🎉
 
