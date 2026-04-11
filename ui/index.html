@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
     <div class="bg-shapes">
         <div class="shape shape-1"></div>
@@ -23,7 +25,7 @@
                 </div>
                 <p class="version">OS Companion</p>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <button class="nav-btn active" data-view="chat">
                     <i class="fas fa-comments"></i>
@@ -46,7 +48,7 @@
                     <span>Settings</span>
                 </button>
             </nav>
-            
+
             <div class="sidebar-footer">
                 <div class="status-indicator">
                     <span class="status-dot" id="status-dot"></span>
@@ -54,7 +56,7 @@
                 </div>
             </div>
         </aside>
-        
+
         <!-- Main Content -->
         <main class="main-content">
             <!-- Header -->
@@ -74,7 +76,7 @@
                     </div>
                 </div>
             </header>
-            
+
             <!-- Chat View -->
             <div class="view active" id="chat-view">
                 <div class="chat-container">
@@ -95,7 +97,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="input-area">
                         <div class="input-options">
                             <label class="checkbox-label">
@@ -110,11 +112,9 @@
                             </label>
                         </div>
                         <div class="input-wrapper">
-                            <textarea 
-                                id="message-input" 
+                            <textarea id="message-input"
                                 placeholder="Type your message or click 🎤 to speak... (Shift+Enter for new line)"
-                                rows="1"
-                            ></textarea>
+                                rows="1"></textarea>
                             <button class="btn-mic" id="mic-btn" title="Click to speak (Speech to Text)">
                                 <i class="fas fa-microphone"></i>
                             </button>
@@ -125,7 +125,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Commands View -->
             <div class="view" id="commands-view">
                 <div class="commands-container">
@@ -133,11 +133,8 @@
                         <h3>Command Generator</h3>
                         <p>Describe what you want to do in natural language, and I'll generate the command.</p>
                         <div class="input-group">
-                            <input 
-                                type="text" 
-                                id="command-input" 
-                                placeholder="e.g., show disk usage, list all python files..."
-                            >
+                            <input type="text" id="command-input"
+                                placeholder="e.g., show disk usage, list all python files...">
                             <button class="btn-primary" id="generate-btn">
                                 <i class="fas fa-magic"></i> Generate
                             </button>
@@ -156,7 +153,8 @@
                             </div>
                             <code id="generated-command"># Command will appear here</code>
                         </div>
-                        <div class="command-actions" style="display: flex; align-items: center; justify-content: flex-end; width: 100%;">
+                        <div class="command-actions"
+                            style="display: flex; align-items: center; justify-content: flex-end; width: 100%;">
                             <label class="checkbox-label" style="margin-right: auto;">
                                 <input type="checkbox" id="auto-execute">
                                 <span class="checkmark"></span>
@@ -172,7 +170,7 @@
                         <div class="safety-result" id="safety-result"></div>
                         <div class="command-output" id="command-output"></div>
                     </div>
-                    
+
                     <div class="quick-commands">
                         <h3>Quick Commands</h3>
                         <div class="quick-grid">
@@ -204,7 +202,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- RAG View -->
             <div class="view" id="rag-view">
                 <div class="rag-container">
@@ -212,12 +210,7 @@
                         <h3>Index Files</h3>
                         <p>Index your local files for semantic search.</p>
                         <div class="input-group">
-                            <input 
-                                type="text" 
-                                id="index-path" 
-                                placeholder="/path/to/directory"
-                                value="."
-                            >
+                            <input type="text" id="index-path" placeholder="/path/to/directory" value=".">
                             <button class="btn-primary" id="index-btn">
                                 <i class="fas fa-database"></i> Index
                             </button>
@@ -232,16 +225,12 @@
                         <div class="index-stats" id="index-stats"></div>
                         <div class="index-progress" id="index-progress"></div>
                     </div>
-                    
+
                     <div class="rag-search">
                         <h3>Search Files</h3>
                         <p>Search your indexed files using natural language.</p>
                         <div class="input-group">
-                            <input 
-                                type="text" 
-                                id="rag-query" 
-                                placeholder="e.g., find python code about authentication"
-                            >
+                            <input type="text" id="rag-query" placeholder="e.g., find python code about authentication">
                             <button class="btn-primary" id="rag-search-btn">
                                 <i class="fas fa-search"></i> Search
                             </button>
@@ -250,7 +239,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- History View -->
             <div class="view" id="history-view">
                 <div class="history-container">
@@ -265,7 +254,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Settings View -->
             <div class="view" id="settings-view">
                 <div class="settings-container">
@@ -281,7 +270,7 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="settings-section">
                         <h3>Operating System</h3>
                         <div class="setting-item">
@@ -296,7 +285,7 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="settings-section">
                         <h3>Appearance</h3>
                         <div class="setting-item">
@@ -316,7 +305,7 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="settings-section">
                         <h3>About</h3>
                         <div class="about-info">
@@ -333,7 +322,7 @@
             </div>
         </main>
     </div>
-    
+
     <!-- Confirmation Modal -->
     <div class="modal" id="confirm-modal">
         <div class="modal-content">
@@ -352,10 +341,10 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
-    
+
     <!-- Provider Setup Modal -->
     <div class="modal active" id="provider-modal">
         <div class="modal-content provider-modal-content">
@@ -429,7 +418,8 @@
                     <select id="provider-model-select"></select>
                 </div>
                 <div class="provider-key-input-wrap">
-                    <input type="password" id="provider-api-key-input" placeholder="Paste your API key here..." autocomplete="off">
+                    <input type="password" id="provider-api-key-input" placeholder="Paste your API key here..."
+                        autocomplete="off">
                     <button class="btn-eye" id="toggle-key-visibility" title="Show/hide key">
                         <i class="fas fa-eye"></i>
                     </button>
@@ -452,4 +442,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>

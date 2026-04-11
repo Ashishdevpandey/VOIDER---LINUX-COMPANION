@@ -23,7 +23,7 @@ API_HOST="0.0.0.0"
 echo -e "${CYAN}"
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║                                                              ║"
-echo "║   🤖 AI OS - Local AI Assistant                              ║"
+echo "║   🤖 VOIDER-OS - Local AI Assistant                          ║"
 echo "║                                                              ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
@@ -172,7 +172,7 @@ print_access_info() {
     echo
     echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${GREEN}║                                                              ║${NC}"
-    echo -e "${GREEN}║   ✅ AI OS is running!                                       ║${NC}"
+    echo -e "${GREEN}║   ✅ VOIDER-OS is running!                                   ║${NC}"
     echo -e "${GREEN}║                                                              ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
     echo
