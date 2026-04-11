@@ -15,7 +15,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-VENV_DIR="venv"
+VENV_DIR=".venv"
 OLLAMA_URL="http://localhost:11434"
 API_PORT=8000
 API_HOST="0.0.0.0"
@@ -217,14 +217,34 @@ cleanup() {
 # Set trap for cleanup
 trap cleanup SIGINT SIGTERM
 
+# Ask user for provider if not specified
+ask_provider() {
+    if [ -z "$SKIP_OLLAMA" ]; then
+        echo
+        echo -e "${YELLOW}Would you like to use Local AI (Ollama) or a Cloud API?${NC}"
+        echo "1) Local AI (Ollama - Recommended for privacy, requires 8GB+ RAM)"
+        echo "2) Cloud API (OpenAI/Groq/Gemini - Recommended for low RAM)"
+        read -p "Enter choice (1/2) [1]: " choice
+        echo
+        
+        if [ "$choice" = "2" ]; then
+            print_status "Skipping Ollama checks (Cloud API mode)"
+            SKIP_OLLAMA=1
+        fi
+    fi
+}
+
 # Main function
 main() {
     print_status "Starting AI OS..."
     
     check_venv
     activate_venv
-    check_ollama
-    check_model
+    ask_provider
+    if [ -z "$SKIP_OLLAMA" ]; then
+        check_ollama
+        check_model
+    fi
     setup_directories
     start_server
     print_access_info
