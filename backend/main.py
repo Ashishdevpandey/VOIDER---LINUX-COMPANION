@@ -7,6 +7,7 @@ import logging
 import os
 import uuid
 import tempfile
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -105,6 +106,15 @@ async def lifespan(app: FastAPI):
         default_timeout=safety_config.get("default_timeout", 30),
     )
     
+    # Core services (STT/TTS)
+    stt_config = config.get("stt", {})
+    stt_service = get_stt_service(
+        provider=stt_config.get("provider", "local"),
+        model_size=stt_config.get("model_size", "tiny.en")
+    )
+    stt_service.preload_model_async()
+    logger.info("STT model loading in background...")
+
     rag_config = config.get("rag", {})
     if rag_config.get("enabled", True):
         rag_engine = get_rag_engine(
@@ -246,7 +256,7 @@ async def chat(request: ChatRequest):
         
         # Handle RAG request
         if request.use_rag and rag_engine:
-            context = rag_engine.get_context_string(request.message)
+            context = await asyncio.to_thread(rag_engine.get_context_string, request.message)
             response_text = llm_client.generate_rag_response(
                 question=request.message,
                 context=context,
@@ -354,7 +364,7 @@ async def chat_stream(request: Dict):
             
             # Handle RAG request
             elif use_rag and rag_engine:
-                context = rag_engine.get_context_string(message)
+                context = await asyncio.to_thread(rag_engine.get_context_string, message)
                 rag_prompt = DEFAULT_RAG_PROMPT.format(context=context, question=message)
                 async for chunk in llm_client.stream_chat(message, system_prompt=rag_prompt):
                     chunk_data = json.dumps({'chunk': chunk})
@@ -578,7 +588,7 @@ async def transcribe_audio(
             tmp_path = tmp.name
             
         start_time = datetime.now()
-        text = stt_service.transcribe(tmp_path)
+        text = await asyncio.to_thread(stt_service.transcribe, tmp_path)
         duration = (datetime.now() - start_time).total_seconds()
         
         # Clean up

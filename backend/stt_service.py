@@ -5,6 +5,7 @@ Handles Speech-to-Text using faster-whisper (local) and cloud APIs (Groq/OpenAI)
 
 import logging
 import os
+import threading
 from typing import Optional, Union
 from pathlib import Path
 import tempfile
@@ -26,23 +27,52 @@ class STTService:
         self.device = device
         self.compute_type = compute_type
         self._model = None
+        self._model_ready = threading.Event()
+        self._model_load_error: Optional[str] = None
         
         logger.info(f"STT Service initialized with provider: {provider}")
 
-    def _load_local_model(self):
+    def preload_model_async(self):
+        """Start loading the Whisper model in a background thread"""
+        if self.provider != "local":
+            return
+            
+        def _load():
+            try:
+                self._load_local_model(sync=True)
+            except Exception as e:
+                self._model_load_error = str(e)
+                logger.error(f"Background STT load failed: {e}")
+            finally:
+                self._model_ready.set()
+                
+        thread = threading.Thread(target=_load, daemon=True, name="stt-model-loader")
+        thread.start()
+        return thread
+
+    def _load_local_model(self, sync: bool = False):
         """Lazy load the faster-whisper model"""
         if self._model is None:
-            try:
-                from faster_whisper import WhisperModel
-                logger.info(f"Loading local Whisper model: {self.model_size} on {self.device}")
-                self._model = WhisperModel(
-                    self.model_size, 
-                    device=self.device, 
-                    compute_type=self.compute_type
-                )
-            except Exception as e:
-                logger.error(f"Failed to load local Whisper model: {e}")
-                raise
+            if not sync and not self._model_ready.is_set():
+                logger.info("Waiting for STT model to finish loading...")
+                self._model_ready.wait(timeout=300) # Wait up to 5 min
+                
+            if self._model_load_error:
+                raise RuntimeError(f"STT model failed to load: {self._model_load_error}")
+                
+            if self._model is None:
+                try:
+                    from faster_whisper import WhisperModel
+                    logger.info(f"Loading local Whisper model: {self.model_size} on {self.device}")
+                    self._model = WhisperModel(
+                        self.model_size, 
+                        device=self.device, 
+                        compute_type=self.compute_type
+                    )
+                    self._model_ready.set()
+                except Exception as e:
+                    logger.error(f"Failed to load local Whisper model: {e}")
+                    raise
 
     def transcribe(self, audio_path: Union[str, Path]) -> str:
         """Transcribe an audio file using the configured provider"""
