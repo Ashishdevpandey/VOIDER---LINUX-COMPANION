@@ -86,11 +86,11 @@ PROVIDERS = {
 }
 
 
-def _build_langchain_model(provider: str, model: str, api_key: Optional[str] = None):
+def _build_langchain_model(provider: str, model: str, api_key: Optional[str] = None, base_url: Optional[str] = None):
     """Build the appropriate LangChain model object for the given provider."""
     if provider == "ollama":
         from langchain_ollama import ChatOllama
-        return ChatOllama(model=model, temperature=0.7)
+        return ChatOllama(model=model, temperature=0.7, base_url=base_url)
 
     elif provider == "groq":
         from langchain_groq import ChatGroq
@@ -143,7 +143,7 @@ class LLMClient:
         self.max_tokens = max_tokens
         self.system_prompt = system_prompt or DEFAULT_CHAT_PROMPT
 
-        self._lc_model = _build_langchain_model(provider, self.model, api_key)
+        self._lc_model = _build_langchain_model(provider, self.model, api_key, base_url=base_url)
         logger.info(f"LLM client initialized: provider={provider}, model={self.model}")
 
     def _invoke(self, messages: list) -> str:
